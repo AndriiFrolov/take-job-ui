@@ -1,0 +1,65 @@
+* {
+  box-sizing: border-box
+}
+
+header {
+  min-height: 53px;
+  background: rgb(43, 48, 53);
+}
+
+/* Style the caret/arrow */
+.caret {
+  cursor: pointer;
+  user-select: none; /* Prevent text selection */
+}
+
+/* Create the caret/arrow with a unicode, and style it */
+.caret::before {
+  content: "\25B6";
+  color: black;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+.caret-down::before {
+  transform: rotate(90deg);
+}
+
+/* Hide the nested list */
+.nested {
+  display: none;
+}
+
+/* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
+.active {
+  display: block;
+}
+
+.color1 {
+  background-color: #FFF3E2;
+}
+
+.color2 {
+  background-color: #FFE5CA;
+}
+
+.color3 {
+  background-color: #CDC9C8;
+}
+
+.color4 {
+  background-color: #A0E7E5;
+}
+
+.shorten-text:hover {
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}
+
+.initial {
+  display: initial;
+}

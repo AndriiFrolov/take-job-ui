@@ -1,0 +1,45 @@
+version: "3.7"
+services:
+  backend:
+    container_name: "jobs_finder"
+    build:
+      context: .
+    environment:
+      SELENIUM_GRID_HOST: selenium
+    ports:
+      - 8080:8080
+    networks:
+      - jobs-network
+
+#  selenium:
+#    image: selenium/standalone-chrome:latest
+#    container_name: selenium
+#    ports:
+#      - "4444:4444"
+#      - "7900:7900"
+#    shm_size: "2g"
+#    environment:
+#      - SE_NODE_MAX_SESSIONS=5
+#      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+#      - SE_NODE_SESSION_TIMEOUT=120
+#    networks:
+#      - jobs-network
+
+
+  #For Mac OS M1:
+  selenium:
+    image: seleniarm/standalone-chromium:latest
+    container_name: selenium
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    shm_size: "2g"
+    environment:
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_NODE_SESSION_TIMEOUT=120
+    networks:
+      - jobs-network
+
+networks:
+    jobs-network:
