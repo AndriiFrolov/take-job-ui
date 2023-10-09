@@ -25,6 +25,15 @@ services:
 #    networks:
 #      - jobs-network
 
+#  backend:
+#    container_name: "jobs_finder"
+#    image: andrii111333/takejob:latest
+#    environment:
+#      SELENIUM_GRID_HOST: selenium
+#    ports:
+#      - 8080:8080
+#    networks:
+#      - jobs-network
 
   #For Mac OS M1:
   selenium:

@@ -31,6 +31,9 @@
         <label for="maxAttempts">Max Attempts (Maximum number of jobs that script will take)</label>
         <input class="w3-input w3-border" type="number" id="maxAttempts" value="1">
 
+        <label for="secondsWait">Seconds to wait until next attempt</label>
+        <input class="w3-input w3-border" type="number" id="secondsWait" value="5">
+
         <label for="username">Username</label>
         <input class="w3-input w3-border" type="text" id="username" value="aija.vitola">
 
@@ -43,6 +46,7 @@
 
     <button class="w3-button w3-green w3-margin-top" id="startButton">Start</button>
     <button class="w3-button w3-red w3-margin-top" id="stopButton" disabled>Stop</button>
+    <button class="w3-button w3-grey w3-margin-top" id="saveButton">Save entered data</button>
 </div>
 <br>
 <br>

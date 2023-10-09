@@ -1,25 +1,14 @@
  $(document).ready(function() {
+    loadData();
+    $("#saveButton").click(function() {
+      saveStorage()
+    });
     $("#startButton").click(function() {
       // Retrieve data from input fields
       $('#startButton').prop('disabled', true);
       $('#stopButton').prop('disabled', false);
-      var minTotalPrice = $("#minTotalPrice").val();
-      var deadlineHoursFromNow = $("#deadlineHoursFromNow").val();
-      var maxAttempts = $("#maxAttempts").val();
-      var username = $("#username").val();
-      var password = $("#password").val();
-      var emailToSend = $("#emailToSend").val();
-
-      // Create data object
-      var data = {
-        "minTotalPrice": minTotalPrice,
-        "deadlineHoursFromNow": deadlineHoursFromNow,
-        "maxAttempts": maxAttempts,
-        "username": username,
-        "password": password,
-        "emailToSend": emailToSend
-      };
-
+      const data = getEnteredData();
+      saveStorage();
       // Send POST request
       $.ajax({
         type: "POST",
@@ -62,6 +51,50 @@
     updateStatusTable();
     setInterval(updateStatusTable, 10000);
   });
+
+function getEnteredData() {
+   var minTotalPrice = $("#minTotalPrice").val();
+      var deadlineHoursFromNow = $("#deadlineHoursFromNow").val();
+      var maxAttempts = $("#maxAttempts").val();
+      var username = $("#username").val();
+      var password = $("#password").val();
+      var emailToSend = $("#emailToSend").val();
+      var secondsWait = $("#secondsWait").val();
+
+
+      // Create data object
+      var data = {
+        "minTotalPrice": minTotalPrice,
+        "deadlineHoursFromNow": deadlineHoursFromNow,
+        "maxAttempts": maxAttempts,
+        "username": username,
+        "password": password,
+        "emailToSend": emailToSend,
+        "secondsWait": secondsWait
+      };
+      return data;
+      }
+
+function loadData() {
+  const prevData = localStorage.getItem('prevData');
+  if (prevData === null) {
+     return;
+  }
+  const localStorageData = JSON.parse(prevData);
+
+  for (var key in localStorageData) {
+      if (localStorageData.hasOwnProperty(key)) {
+        $("#" + key).val(localStorageData[key]);
+      }
+    }
+
+
+}
+
+
+function saveStorage() {
+   localStorage.setItem('prevData', JSON.stringify(getEnteredData()));
+}
 
 function updateStatusTable() {
     $.ajax({

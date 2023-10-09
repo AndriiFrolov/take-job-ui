@@ -1,6 +1,7 @@
 package org.example.service;
 
 
+import jakarta.mail.MessagingException;
 import org.example.config.ExecutorProvider;
 import org.example.dto.ConfigurationDto;
 import org.example.dto.Job;
@@ -88,7 +89,7 @@ public class JobFinderRunner {
     }
 
     public void startScanning(ConfigurationDto configurationDto) {
-        //Config.getPropValues();
+
         logger.info("--------- Settings -------");
         logger.info("---minTotalPrice (EUR) " + configurationDto.getMinTotalPrice());
         logger.info("---deadlineHoursFromNow (days) " + configurationDto.getDeadlineHoursFromNow());
@@ -144,21 +145,18 @@ public class JobFinderRunner {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_FOR_INTERACTING_WITH_ELEMENT_IN_SECONDS));
         wait.until(webDriver -> {
             try {
-//                String username = "aija.vitola";
-//                String password = "6Ru*Restidru";
-
                 // Getting the home page
                 logger.info(String.format("Entering username: %s", configurationDto.getUsername()));
                 webDriver.findElement(By.id("Username")).sendKeys(configurationDto.getUsername());
-                sleep(2);
+                sleep(1);
                 logger.info("Clicking Proceed button");
                 webDriver.findElement(By.tagName("button")).click();
-                sleep(4);
+                sleep(1);
                 logger.info(String.format("Entering password: %s", configurationDto.getPassword()));
                 webDriver.findElement(By.id("passwordInput")).sendKeys(configurationDto.getPassword());
                 logger.info("Clicking Submit button");
                 webDriver.findElement(By.id("submitButton")).click();
-                sleep(10);
+                sleep(1);
                 return true;
             } catch (Exception e) {
                 logger.error("Exception occurred ", e);
@@ -187,7 +185,7 @@ public class JobFinderRunner {
         logger.info("No Jobs message - " + noJobsMessage.size());
         if (noJobsMessage.size() > 0) {
             logger.info("No jobs available");
-            sleep(10);
+            sleep(configurationDto.getSecondsBetweenRepeat());
         } else {
             logger.info("Some jobs are available?");
 
@@ -215,11 +213,11 @@ public class JobFinderRunner {
                     if (jobMatches) {
                         logger.info("!!!!! JOB MATCHES! {}", job.getTitle());
                         title.click();
-                        sleep(2);
+                        sleep(1);
                         driver.findElement(By.xpath("(//button[@id='accept-btn'])[1]")).click();
                         logger.info("ACCEPTED!");
                         emailService.sendEmail(configurationDto, job);
-                        sleep(4);
+                        sleep(1);
                         return true;
                     } else {
                         logger.info("JOB NOT MATCHES {}", job.getTitle());
@@ -232,13 +230,6 @@ public class JobFinderRunner {
             }
 
             printJobTable(jobsFound);
-
-            //Card - //ltx-job-card
-            //div[@class='customerGroupName'] - customer
-            //ltx-job-card//div[@class='job-title'] - job title
-            //ltx-job-card//div[@class='job-date'] - job date
-            //ltx-job-card//div[@class='job-total']//span[@class="cost"] - price
-            //ltx-job-card//div[@class='job-total']//div[@class="details"]
         }
         return false;
 

@@ -6,14 +6,15 @@ docker-compose up --build -d
 docker-compose down
 
 # Build new docker image and push
-
-docker buildx build --platform linux/amd64 -t andrii111333/traceable:amd64 .
-docker push andrii111333/traceable:amd64
+do mvn clean install!!!
+delete old image
+docker build -t andrii111333/takejob:latest .
+docker push andrii111333/takejob:latest
 
 # On VM
 
 sudo docker-compose down
-sudo docker image pull andrii111333/traceable:amd64
+sudo docker image pull andrii111333/takejob:amd64
 sudo docker-compose up -d
 
 
