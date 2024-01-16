@@ -20,16 +20,4 @@ public class Job {
     private String wordsCount;
     private String customer;
     private LocalDateTime appeared;
-
-
-    public void setDueDateStr(String dueDateStr) {
-        String inputWithYear = CURRENT_YEAR + dueDateStr;
-
-        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-                .appendPattern("yyyy EEEE, MMMM d, h:mm a zzz")
-                .toFormatter();
-
-        TemporalAccessor temporalAccessor = formatter.parse(inputWithYear);
-        this.dueDate =  LocalDateTime.from(temporalAccessor);
-    }
 }

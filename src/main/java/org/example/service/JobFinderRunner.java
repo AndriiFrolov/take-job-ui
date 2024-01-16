@@ -1,92 +1,52 @@
 package org.example.service;
 
 
-import jakarta.mail.MessagingException;
 import org.example.config.ExecutorProvider;
 import org.example.dto.ConfigurationDto;
 import org.example.dto.Job;
-import org.example.dto.Status;
-import org.example.utils.DriverUtils;
+import org.example.utils.DriverService;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.TemporalAccessor;
 import java.util.List;
-import java.util.Set;
-import java.util.Timer;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static org.example.config.Config.CURRENT_YEAR;
 import static org.example.config.Config.FORM_REFRESH_PERIOD_IN_SECONDS;
-import static org.example.config.Config.TIMEOUT_FOR_INTERACTING_WITH_ELEMENT_IN_SECONDS;
-import static org.example.utils.DriverUtils.*;
+import static org.example.utils.DriverService.sleep;
 
 @Service
 public class JobFinderRunner {
 
     public static final String NEW_JOBS_URL = "https://lcx-jobboard.lionbridge.com/new-jobs";
     public static int searchCount = 0;
+
+    private static boolean isRunning = false;
+
     private final Logger logger = LoggerFactory.getLogger(JobFinderRunner.class);
-    private final Timer timer = new Timer(true);
+
     @Autowired
     private ExecutorProvider executorProvider;
-
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private StatusService statusService;
+    @Autowired
+    private DriverService driverService;
 
-    private Set<Job> jobsFound = new HashSet<>();
-    private static boolean isRunning = false;
-    private static Integer refreshedPageTimes = 0;
-    private static Integer takenJobs = 0;
-    private static LocalDateTime startedAt;
-    private static LocalDateTime stoppedAt;
-    private static boolean shouldRun = false;
-
-    public static void printJobTable(Set<Job> jobs) {
-        int columnWidth = 25; // Adjust this based on your needs
-        String horizontalLine = "+-" + "-".repeat(13) + "-+-" + "-".repeat(8) + "-+-" + "-".repeat(13) + "-+-" + "-".repeat(60) + "-+";
-
-        // Print top border
-        System.out.println(horizontalLine);
-
-        // Print table header
-        System.out.printf("| %-13s | %-8s | %-13s | %-63s |%n", "Appeared", "Price", "Due Date", "Title");
-
-        // Print header separator
-        System.out.println(horizontalLine);
-
-
-        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm");
-
-        for (Job job : jobs) {
-            String appearedFormatted = job.getAppeared().format(outputFormatter);
-            String dueDateFormatted = job.getDueDate().format(outputFormatter);
-
-            // Remove newline characters from the price
-            String price = job.getPrice().replace("\n", "");
-
-            // Shorten title if necessary
-            String title = job.getTitle().length() > 60 ? job.getTitle().substring(0, 57) + "..." : job.getTitle();
-
-            // Print job details with borders
-            System.out.printf("| %-13s | %-8s | %-13s | %-43s |%n", appearedFormatted, price, dueDateFormatted, title);
-
-            // Print separator
-            System.out.println(horizontalLine);
-        }
-
-        // Print bottom border
-        System.out.println(horizontalLine);
-    }
+    @Autowired
+    private ErrorService errorService;
 
     public void startScanning(ConfigurationDto configurationDto) {
 
@@ -103,26 +63,25 @@ public class JobFinderRunner {
     }
 
     protected void run(ConfigurationDto configurationDto) {
-        shouldRun = true;
-        isRunning = true;
-        startedAt = LocalDateTime.now();
-        takenJobs = 0;
-        refreshedPageTimes = 0;
-        while (shouldRun) {
+        statusService.start();
+        errorService.clearErrors();
+        errorService.setConfiguration(configurationDto);
+
+        while (statusService.isShouldRun()) {
             try {
-                DriverUtils.getDriverInstance();
+                driverService.makeSureDriverIsRunning();
                 boolean isFound = openNewJobs(configurationDto);
                 if (isFound) {
-                    takenJobs += 1;
+                    statusService.tookAJob();
                 }
-                if (configurationDto.getMaxAttempts().equals(takenJobs)) {
-                    shouldRun = false;
+                if (configurationDto.getMaxAttempts().equals(statusService.getTakenJobs())) {
+                    statusService.markShouldNotRunAnymore();
                 }
             } catch (Exception e) {
                 logger.error("Exception occurred during the process, quitting.", e);
-                if (isWebDriverRunning) {
+                if (statusService.isRunning()) {
                     try {
-                        resetDriverGracefully();
+                        driverService.resetDriverGracefully();
                     } catch (Exception e2) {
                         logger.error("Exception occurred during the process, driver initializing", e2);
                     }
@@ -131,43 +90,49 @@ public class JobFinderRunner {
             }
         }
         logger.info("End of process");
-        isRunning = false;
-        stoppedAt = LocalDateTime.now();
-        DriverUtils.resetDriverGracefully();
-        timer.cancel();
+        statusService.stop();
+        driverService.resetDriverGracefully();
+
         executorProvider.getExecutor().shutdown();
     }
 
-    protected void signIn(ConfigurationDto configurationDto) {
-        WebDriver driver = getDriverInstance();
+    protected boolean signIn(ConfigurationDto configurationDto) {
+        WebDriver webDriver = driverService.makeSureDriverIsRunning();
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         logger.info("Starting to {}", methodName);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_FOR_INTERACTING_WITH_ELEMENT_IN_SECONDS));
-        wait.until(webDriver -> {
-            try {
-                // Getting the home page
-                logger.info(String.format("Entering username: %s", configurationDto.getUsername()));
-                webDriver.findElement(By.id("Username")).sendKeys(configurationDto.getUsername());
-                sleep(1);
-                logger.info("Clicking Proceed button");
-                webDriver.findElement(By.tagName("button")).click();
-                sleep(1);
-                logger.info(String.format("Entering password: %s", configurationDto.getPassword()));
-                webDriver.findElement(By.id("passwordInput")).sendKeys(configurationDto.getPassword());
-                logger.info("Clicking Submit button");
-                webDriver.findElement(By.id("submitButton")).click();
-                sleep(1);
-                return true;
-            } catch (Exception e) {
-                logger.error("Exception occurred ", e);
+        //WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_FOR_INTERACTING_WITH_ELEMENT_IN_SECONDS));
+        // wait.until(webDriver -> {
+        try {
+            // Getting the home page
+            logger.info(String.format("Entering username: %s", configurationDto.getUsername()));
+            webDriver.findElement(By.id("Username")).sendKeys(configurationDto.getUsername());
+            sleep(1);
+            logger.info("Clicking Proceed button");
+            webDriver.findElement(By.tagName("button")).click();
+            sleep(1);
+            logger.info(String.format("Entering password: %s", configurationDto.getPassword()));
+            webDriver.findElement(By.id("passwordInput")).sendKeys(configurationDto.getPassword());
+            logger.info("Clicking Submit button");
+            webDriver.findElement(By.id("submitButton")).click();
+            sleep(1);
+            if (webDriver.findElements(By.xpath("//span[@id='errorText']")).size() > 0) {
+                errorService.addError("Password seems to be incorrect", true);
                 return false;
             }
-        });
-    }
+            return true;
+        } catch (Exception e) {
+            logger.error("Exception occurred ", e);
+            return false;
+        }
+    }//);
 
     protected boolean openNewJobs(ConfigurationDto configurationDto) {
-        refreshedPageTimes++;
-        WebDriver driver = getDriverInstance();
+        statusService.refreshedPage();
+        WebDriver driver = driverService.makeSureDriverIsRunning();
+        if (driver == null) {
+            logger.info("Issue with driver, so quitting");
+            return false;
+        }
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         logger.info("Starting to {}", methodName);
 
@@ -178,7 +143,16 @@ public class JobFinderRunner {
         logger.info("Checking if Sign in is required");
         if (driver.findElements(By.id("Username")).size() > 0) {
             logger.info("Sign in is required");
-            signIn(configurationDto);
+            boolean isSuccessSignIn = signIn(configurationDto);
+            if (!isSuccessSignIn) {
+                logger.info("Attempting to sign in again");
+                isSuccessSignIn = signIn(configurationDto);
+            }
+            if (!isSuccessSignIn) {
+                logger.info("Failed to login 2nd time in a row");
+                errorService.addError("Failed to login", true);
+                return false;
+            }
         }
         logger.info("Checking if no jobs message shown");
         List<WebElement> noJobsMessage = driver.findElements(By.xpath("//div[contains(@class, 'no-jobs-message')]"));
@@ -207,8 +181,12 @@ public class JobFinderRunner {
                     job.setCustomer(driver.findElement(By.xpath(card + "//div[@class='customerGroupName']")).getText());
                     job.setPrice(driver.findElement(By.xpath(card + "//div[@class='job-total']//span[@class='cost'] ")).getText());
                     job.setWordsCount(driver.findElement(By.xpath(card + "//div[@class='job-total']//div[@class='details']")).getText());
-                    job.setDueDateStr(driver.findElement(By.xpath(card + "//div[@class='job-date']")).getText());
-                    jobsFound.add(job);
+                    Optional<LocalDateTime> parseDate = parseDate(driver.findElement(By.xpath(card + "//div[@class='job-date']")).getText());
+                    if (parseDate.isEmpty()) {
+                        return false;
+                    }
+                    job.setDueDate(parseDate.get());
+                    statusService.addFoundJob(job);
                     boolean jobMatches = new JobMatcher().isJobMatches(job, configurationDto);
                     if (jobMatches) {
                         logger.info("!!!!! JOB MATCHES! {}", job.getTitle());
@@ -228,28 +206,33 @@ public class JobFinderRunner {
                 }
 
             }
-
-            printJobTable(jobsFound);
         }
         return false;
 
     }
 
-    public void stop() {
-        shouldRun = false;
-    }
+    private Optional<LocalDateTime> parseDate(String dueDateStr) {
 
-    public Status getStatus() {
-        Status status = new Status();
-        status.setFoundJobs(jobsFound);
-        status.setRunning(isRunning);
-        status.setStartedAt(startedAt);
-        status.setStoppedAt(stoppedAt);
-        status.setRefreshedPageTimes(refreshedPageTimes);
-        status.setTakenJobs(takenJobs);
+        String inputWithYear = CURRENT_YEAR + dueDateStr;
 
-        String seleniumDriverHost = System.getenv().getOrDefault("SELENIUM_GRID_HOST", "localhost");
-        status.setLinkToVideo(String.format("http://%s:7900/?autoconnect=1&resize=scale&password=secret", seleniumDriverHost));
-        return status;
+        String format1 = "yyyy EEEE, MMMM d, h:mm a zzz";
+        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                .appendPattern(format1)
+                .toFormatter();
+        try {
+            logger.info("Attempting to parse date  " + dueDateStr);
+            TemporalAccessor temporalAccessor = formatter.parse(inputWithYear);
+            return Optional.of(LocalDateTime.from(temporalAccessor));
+        } catch (Exception e) {
+            logger.error("Failed to parse date ", e);
+            logger.info("Attempting to parse date again " + dueDateStr);
+            try {
+                return Optional.of(LocalDateTime.parse(inputWithYear, formatter));
+            } catch (Exception e2) {
+                logger.error("Failed to parse date again", e2);
+            }
+        }
+        errorService.addError("Failed to parse date " + dueDateStr, true);
+        return Optional.empty();
     }
 }

@@ -8,7 +8,7 @@ docker-compose down
 # Build new docker image and push
 do mvn clean install!!!
 delete old image
-docker build -t andrii111333/takejob:latest .
+docker build --platform linux/amd64 -t andrii111333/takejob:latest .
 docker push andrii111333/takejob:latest
 
 # On VM

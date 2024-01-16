@@ -58,6 +58,58 @@ public class LogsService {
         }
     }
 
+    public void deleteLogs() {
+        String folderPath = "logs/archived"; // Replace with the actual path to your folder
+
+        long folderSize = getFolderSize(new File(folderPath));
+        System.out.println("Archive Folder size: " + folderSize + " bytes");
+
+        long threshold = 100 * 1024 * 1024; // 100 MB in bytes
+
+        if (folderSize > threshold) {
+            deleteFilesInFolder(new File(folderPath));
+            System.out.println("Files deleted because folder size exceeded 100 MB.");
+        }
+    }
+
+    public String getFolderSizeStr(File folder) {
+        long sizeInBytes = getFolderSize(folder);
+        long sizeInMegabytes = sizeInBytes / (1024 * 1024);
+        deleteLogs();
+
+        return String.valueOf(sizeInMegabytes) + " MB";
+    }
+
+    public long getFolderSize(File folder) {
+        long size = 0;
+        File[] files = folder.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    size += file.length();
+                } else if (file.isDirectory()) {
+                    size += getFolderSize(file);
+                }
+            }
+        }
+
+        return size;
+    }
+
+    private void deleteFilesInFolder(File folder) {
+        File[] files = folder.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    file.delete();
+                    System.out.println("Deleted: " + file.getAbsolutePath());
+                }
+            }
+        }
+    }
+
     public List<LogDto> getLogs(String threadName, Date start, Date finish) {
         List<LogDto> logDtos = readLogsFromLocalFiles();
         List<LogDto> filteredLogDtos = logDtos.stream().filter(logDto -> {
