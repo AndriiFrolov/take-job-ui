@@ -3,6 +3,8 @@ package org.example.service;
 import org.example.dto.Job;
 import org.example.dto.Status;
 import org.openqa.selenium.logging.Logs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +23,11 @@ public class StatusService {
     private LocalDateTime stoppedAt;
     private Integer refreshedPageTimes = 0;
 
+
     private Integer takenJobs = 0;
     private Set<Job> jobsFound = new HashSet<>();
 
+    private final Logger logger = LoggerFactory.getLogger(StatusService.class);
     @Autowired
     private LogsService logsService;
 

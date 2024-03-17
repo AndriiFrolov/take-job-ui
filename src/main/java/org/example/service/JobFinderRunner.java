@@ -53,6 +53,9 @@ public class JobFinderRunner {
         logger.info("--------- Settings -------");
         logger.info("---minTotalPrice (EUR) " + configurationDto.getMinTotalPrice());
         logger.info("---deadlineHoursFromNow (days) " + configurationDto.getDeadlineHoursFromNow());
+        logger.info("---emailToSend (string) " + configurationDto.getEmailToSend());
+        logger.info("---maxAttempts (times) " + configurationDto.getMaxAttempts());
+        logger.info("---secondsBetweenRepeat " + configurationDto.getSecondsBetweenRepeat());
         logger.info("--------------------------");
 
 
@@ -77,16 +80,18 @@ public class JobFinderRunner {
                 if (configurationDto.getMaxAttempts().equals(statusService.getTakenJobs())) {
                     statusService.markShouldNotRunAnymore();
                 }
+                errorService.resetWebDriverFailures(); //cause we succesfully reached this point
             } catch (Exception e) {
                 logger.error("Exception occurred during the process, quitting.", e);
+                errorService.registerWebDriverFailure();
                 if (statusService.isRunning()) {
                     try {
                         driverService.resetDriverGracefully();
                     } catch (Exception e2) {
                         logger.error("Exception occurred during the process, driver initializing", e2);
+                        errorService.registerWebDriverFailure();
                     }
                 }
-
             }
         }
         logger.info("End of process");
@@ -179,7 +184,7 @@ public class JobFinderRunner {
                     job.setTitle(title.getText());
                     job.setAppeared(LocalDateTime.now());
                     job.setCustomer(driver.findElement(By.xpath(card + "//div[@class='customerGroupName']")).getText());
-                    job.setPrice(driver.findElement(By.xpath(card + "//div[@class='job-total']//span[@class='cost'] ")).getText());
+                    job.setPrice(driver.findElement(By.xpath(card + "//div[@class='job-total']//span[@class='cost']")).getText());
                     job.setWordsCount(driver.findElement(By.xpath(card + "//div[@class='job-total']//div[@class='details']")).getText());
                     Optional<LocalDateTime> parseDate = parseDate(driver.findElement(By.xpath(card + "//div[@class='job-date']")).getText());
                     if (parseDate.isEmpty()) {

@@ -54,8 +54,9 @@ public class JobMatcher {
         }
     }
 
-    private Integer parsePrice(String price) throws Exception {
+    public Integer parsePrice(String price) throws Exception {
         // Define a regular expression pattern to match integers
+        price = price.replaceAll(",", "");
         Pattern pattern = Pattern.compile("\\d+");
 
         // Create a Matcher object to find matches in the input string

@@ -110,7 +110,8 @@ public class DriverService {
             if (Objects.isNull(driver)) {
                 logger.info("Driver is null, so no quitting");
             } else if (!isWebDriverRunning) {
-                logger.info("Driver is already stopped");
+                logger.info("Driver is already stopped. Setting it to null");
+                driver = null;
             } else {
                 this.driver.close();
                 this.driver.quit();
