@@ -61,7 +61,6 @@ function getEnteredData() {
       var emailToSend = $("#emailToSend").val();
       var secondsWait = $("#secondsWait").val();
 
-
       // Create data object
       var data = {
         "minTotalPrice": minTotalPrice,
@@ -70,7 +69,7 @@ function getEnteredData() {
         "username": username,
         "password": password,
         "emailToSend": emailToSend,
-        "secondsWait": secondsWait
+        "secondsBetweenRepeat": secondsWait
       };
       return data;
       }
@@ -116,6 +115,11 @@ function updateStatusTable() {
         appendRow("Stopped At", response.stoppedAt);
         appendRow("Jobs that were available", response.foundJobs.length);
         appendRow("Jobs that were taken (accepted)", response.takenJobs);
+        appendRow("Log size", response.logSize);
+
+        for (let i = 1; i <= response.errors.length; i++) {
+            appendRow("Error " + i, response.errors[i - 1]);
+        }
       },
       error: function(error) {
         console.log("Error:", error);

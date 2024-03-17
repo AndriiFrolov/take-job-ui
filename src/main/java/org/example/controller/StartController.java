@@ -4,7 +4,9 @@ import org.example.dto.ConfigurationDto;
 import org.example.dto.Job;
 import org.example.dto.Status;
 import org.example.service.EmailService;
+import org.example.service.ErrorService;
 import org.example.service.JobFinderRunner;
+import org.example.service.StatusService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +22,10 @@ public class StartController {
     private JobFinderRunner jobService;
 
     @Autowired
-    EmailService emailService;
+    ErrorService errorService;
+
+    @Autowired
+    StatusService statusService;
 
     @PostMapping(path = "/start")
     @ResponseStatus(HttpStatus.CREATED)
@@ -31,11 +36,13 @@ public class StartController {
     @PostMapping(path = "/stop")
     @ResponseStatus(HttpStatus.CREATED)
     void stop() {
-        jobService.stop();
+        statusService.stop();
     }
 
     @GetMapping(path = "/status")
     Status getStatus() {
-        return jobService.getStatus();
+        Status status = statusService.getStatus();
+        status.setErrors(errorService.getErrors());
+        return status;
     }
 }
