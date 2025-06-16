@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
@@ -22,7 +23,7 @@ public class StatusService {
     private LocalDateTime startedAt;
     private LocalDateTime stoppedAt;
     private Integer refreshedPageTimes = 0;
-
+    private Instant lastTimeWhenPageRedreshed;
 
     private Integer takenJobs = 0;
     private Set<Job> jobsFound = new HashSet<>();
@@ -38,6 +39,8 @@ public class StatusService {
         takenJobs = 0;
         refreshedPageTimes = 0;
         jobsFound = new HashSet<>();
+        lastTimeWhenPageRedreshed = Instant.MIN;
+
     }
 
     public boolean isRunning() {
@@ -46,6 +49,10 @@ public class StatusService {
 
     public boolean isShouldRun() {
         return shouldRun;
+    }
+
+    public Instant getLastTimeWhenPageRedreshed() {
+        return lastTimeWhenPageRedreshed;
     }
 
     public void markShouldNotRunAnymore() {
@@ -63,6 +70,7 @@ public class StatusService {
 
     public void refreshedPage() {
         this.refreshedPageTimes += 1;
+        this.lastTimeWhenPageRedreshed = Instant.now();
     }
 
     public Integer getTakenJobs() {

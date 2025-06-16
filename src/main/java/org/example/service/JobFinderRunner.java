@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -30,9 +32,6 @@ import static org.example.utils.DriverService.sleep;
 public class JobFinderRunner {
 
     public static final String NEW_JOBS_URL = "https://lcx-jobboard.lionbridge.com/new-jobs";
-    public static int searchCount = 0;
-
-    private static boolean isRunning = false;
 
     private final Logger logger = LoggerFactory.getLogger(JobFinderRunner.class);
 
@@ -132,7 +131,7 @@ public class JobFinderRunner {
     }//);
 
     protected boolean openNewJobs(ConfigurationDto configurationDto) {
-        statusService.refreshedPage();
+
         WebDriver driver = driverService.makeSureDriverIsRunning();
         if (driver == null) {
             logger.info("Issue with driver, so quitting");
@@ -141,8 +140,25 @@ public class JobFinderRunner {
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         logger.info("Starting to {}", methodName);
 
-        logger.info(String.format("Getting the URL: %s", NEW_JOBS_URL));
-        driver.get(NEW_JOBS_URL);
+        String currentUrl = driver.getCurrentUrl();
+        long minutesPassedSinceLastPageRefresh = Duration.between(statusService.getLastTimeWhenPageRedreshed(), Instant.now()).toMinutes();
+        if (NEW_JOBS_URL.equals(currentUrl) && minutesPassedSinceLastPageRefresh < 30) {
+            logger.info("Not opening " + NEW_JOBS_URL + " because it is already opened. Looking for 'Refresh' button");
+            logger.info("Time passed since last page refresh is " + minutesPassedSinceLastPageRefresh);
+            List<WebElement> refreshButton = driver.findElements(By.xpath("//button[@class='refresh-jobs-btn' and not(@hidden)]"));
+            if (refreshButton.size() > 0) {
+                logger.info("Refresh button shown. Clicking it");
+                refreshButton.get(0).click();
+            } else {
+                logger.info("Refresh button not shown. Waiting " + configurationDto.getSecondsBetweenRepeat() + " seconds before next try");
+                sleep(configurationDto.getSecondsBetweenRepeat());
+                return false;
+            }
+        } else{
+            logger.info(String.format("Getting the URL: %s", NEW_JOBS_URL));
+            driver.get(NEW_JOBS_URL);
+            statusService.refreshedPage();
+        }
 
         sleep(4);
         logger.info("Checking if Sign in is required");
@@ -164,7 +180,6 @@ public class JobFinderRunner {
         logger.info("No Jobs message - " + noJobsMessage.size());
         if (noJobsMessage.size() > 0) {
             logger.info("No jobs available");
-            sleep(configurationDto.getSecondsBetweenRepeat());
         } else {
             logger.info("Some jobs are available?");
 
@@ -212,6 +227,8 @@ public class JobFinderRunner {
 
             }
         }
+        logger.info("Waiting for " + configurationDto.getSecondsBetweenRepeat() + " seconds");
+        sleep(configurationDto.getSecondsBetweenRepeat());
         return false;
 
     }

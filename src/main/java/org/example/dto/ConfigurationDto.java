@@ -11,4 +11,5 @@ public class ConfigurationDto {
     private String username;
     private String password;
     private String emailToSend;
+    private Integer minutesBetweenPageRefresh;
 }

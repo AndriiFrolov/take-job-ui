@@ -31,8 +31,11 @@
         <label for="maxAttempts">Max Attempts (Maximum number of jobs that script will take)</label>
         <input class="w3-input w3-border" type="number" id="maxAttempts" value="1">
 
-        <label for="secondsWait">Seconds to wait until next attempt</label>
+        <label for="secondsWait">Seconds to wait until next attempt (How often we look for 'Refresh' button) </label>
         <input class="w3-input w3-border" type="number" id="secondsWait" value="5">
+
+        <label for="minutesBetweenPageRefresh">Minutes between page refresh (how often we refresh page, aka F5 in browser). Required not to loose connection</label>
+        <input class="w3-input w3-border" type="number" id="minutesBetweenPageRefresh" value="30">
 
         <label for="username">Username</label>
         <input class="w3-input w3-border" type="text" id="username" value="aija.vitola">

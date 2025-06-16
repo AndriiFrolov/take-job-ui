@@ -60,6 +60,7 @@ function getEnteredData() {
       var password = $("#password").val();
       var emailToSend = $("#emailToSend").val();
       var secondsWait = $("#secondsWait").val();
+       var minutesBetweenPageRefresh = $("#minutesBetweenPageRefresh").val();
 
       // Create data object
       var data = {
@@ -69,7 +70,8 @@ function getEnteredData() {
         "username": username,
         "password": password,
         "emailToSend": emailToSend,
-        "secondsBetweenRepeat": secondsWait
+        "secondsBetweenRepeat": secondsWait,
+        "minutesBetweenPageRefresh": minutesBetweenPageRefresh
       };
       return data;
       }
